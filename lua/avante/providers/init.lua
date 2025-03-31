@@ -183,12 +183,19 @@ M = setmetatable(M, {
       t[k] = Utils.deep_extend_with_metatable("keep", provider_config, module)
     end
 
-    t[k].parse_api_key = function() return E.parse_envvar(t[k]) end
+    if t[k].parse_api_key == nil then t[k].parse_api_key = function() return E.parse_envvar(t[k]) end end
 
     -- default to gpt-4o as tokenizer
     if t[k].tokenizer_id == nil then t[k].tokenizer_id = "gpt-4o" end
 
-    if t[k].is_env_set == nil then t[k].is_env_set = function() return E.parse_envvar(t[k]) ~= nil end end
+    if t[k].is_env_set == nil then
+      t[k].is_env_set = function()
+        -- If parse_api_key is customized (not the default one), use it to determine if API is set
+        if t[k].parse_api_key ~= E.parse_envvar then return t[k].parse_api_key() ~= nil end
+        -- Otherwise use default environment variable check
+        return E.parse_envvar(t[k]) ~= nil
+      end
+    end
 
     if t[k].setup == nil then
       local provider_conf = M.parse_config(t[k])
